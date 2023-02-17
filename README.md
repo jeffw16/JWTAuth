@@ -17,6 +17,14 @@ Add the following to LocalSettings.php, being sure to fill in the proper values 
 wfLoadExtension( 'JWTAuth' );
 $wgJWTAuthAlgorithm = ''; // can be: HS256, RS256, EdDSA
 $wgJWTAuthKey = ''; // Depends on which algorithm you are using
+$wgJWTGroupMapping = [
+  // one group can map to multiple MediaWiki groups...
+  'customgroup1' => [
+    'sysop', 'bureaucrat'
+  ],
+  // ...or just one MediaWiki group.
+  'customgroup2' => 'sysop'
+];
 ```
 
 If you need to debug the JWT being sent, turn on debugging by adding `$wgJWTAuthDebugMode = true;` to your LocalSettings.php.
@@ -51,13 +59,15 @@ The following claims are optional, but are highly recommended because they will 
 
 These claim names cannot be changed to match the token generator's preferences because these claim names are standard conventions. The party generating the token is responsible for sending well-formed responses that conform to internet standards.
 
+If you want to assign groups to a user, pass them in, separated by commas, by using the `groups` claim. For instance, `"groups": "customgroup1,customgroup2"`. Then, define the mapping in `$wgJWTGroupMapping` like it was done in the example config shown above.
+
 ### Testing out JWTAuth using a simple HTML form
 
 If you want to try testing out JWTAuth using a simple form, put the following HTML somewhere and use it to POST the JWT to your wiki. Be sure to replace `PATH_TO_WIKI` with the URL to your wiki.
 
 ```html
 <form method="post" action="https://PATH_TO_WIKI/wiki/Special:JWTLogin">
-  <input type="text" name="Authorization" value="Bearer: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiSm9obiBEb2UiLCJpYXQiOjE1MTYyMzkwMjJ9.0sw4vF5BGhhnv2BMfrxQuNMgFU3mxZpVPsOfkvPWgjs">
+  <input type="text" name="Authorization" value="Bearer: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJuYSIsImF1ZCI6Im5hIiwiaXNzIjoibmEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJKb2huIERvZSIsImlhdCI6MTUxNjIzOTAyMiwibmJmIjoxNTE2MjM5MDIyLCJleHAiOjE3MTYyMzkwODJ9.gQbzrsJAVtEFjh-a4RwqZtSJ-IHxVvl2cj66VkfljrY">
   <input type="submit">
 </form>
 ```
