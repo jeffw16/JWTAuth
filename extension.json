@@ -1,0 +1,51 @@
+{
+    "manifest_version": 2,
+    "name": "JWTAuth",
+    "version": "0.0.1",
+    "author": [
+            "[https://github.com/mywikis MyWikis LLC]"
+    ],
+    "url": "https://github.com/mywikis/JWT",
+    "descriptionmsg": "jwt-ext-desc",
+    "license-name": "MIT",
+    "type": "other",
+    "requires": {
+        "MediaWiki": ">= 1.35.0"
+    },
+    "MessagesDirs": {
+        "JWT": [
+            "i18n"
+        ]
+    },
+    "AutoloadNamespaces": {
+        "MediaWiki\\Extension\\JWTAuth\\": "includes/"
+    },
+    "SpecialPages": {
+        "JWTLogin": {
+            "class": "MediaWiki\\Extension\\JWTAuth\\JWTLogin"
+        }
+    },
+    "ExtensionMessagesFiles": {
+        "JWTAuthAlias": "JWTAuth.alias.php"
+    },
+    "ConfigRegistry": {
+        "JWTAuth": "GlobalVarConfig::newInstance"
+    },
+    "config": {
+        "JWTAuthAlgorithm": {
+            "value": "Text"
+        },
+        "JWTAuthKey": {
+            "value": ""
+        },
+        "JWTRequiredClaims": {
+            "value": []
+        },
+        "JWTGroupMapping": {
+            "value": []
+        },
+        "JWTAuthDebugMode": {
+            "value": false
+        }
+    }
+}
