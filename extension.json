@@ -33,7 +33,7 @@
     },
     "config": {
         "JWTAuthAlgorithm": {
-            "value": "Text"
+            "value": "HS256"
         },
         "JWTAuthKey": {
             "value": ""
@@ -47,5 +47,6 @@
         "JWTAuthDebugMode": {
             "value": false
         }
-    }
+    },
+    "load_composer_autoloader": true
 }
