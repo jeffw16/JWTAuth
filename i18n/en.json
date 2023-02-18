@@ -1,3 +1,4 @@
 {
-    "jwtLogin": "JWTLogin"
+    "jwtLogin": "JWTLogin",
+    "jwt-ext-desc": "Allow logging in via JWT based SSO."
 }
