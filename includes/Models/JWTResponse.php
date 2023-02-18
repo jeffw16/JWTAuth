@@ -130,7 +130,7 @@ class JWTResponse {
         // For each of the groups passed in for this user from the source
         foreach ($groupsArray as $rawGroupName) {
             // See if the source group is mapped to a wiki group
-            $possibleMapping = $groupMapping[$rawGroupName];
+            $possibleMapping = $groupMapping[$rawGroupName] ?? null;
             // Check if mappings exist
             if (!empty($possibleMapping)) {
                 // If string, convert into array

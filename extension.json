@@ -46,6 +46,9 @@
         },
         "JWTAuthDebugMode": {
             "value": false
+        },
+        "JWTGroupsClaimName": {
+            "value": "groups"
         }
     },
     "load_composer_autoloader": true

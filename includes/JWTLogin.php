@@ -57,7 +57,8 @@ class JWTLogin extends UnlistedSpecialPage {
             $this->mwConfig->get('JWTAuthAlgorithm'),
             $this->mwConfig->get('JWTAuthKey'),
             $this->mwConfig->get('JWTRequiredClaims'),
-            $this->mwConfig->get('JWTGroupMapping')
+            $this->mwConfig->get('JWTGroupMapping'),
+            $this->mwConfig->get('JWTGroupsClaimName')
         );
 
         $this->jwtHandler = new JWTHandler(
@@ -141,5 +142,9 @@ class JWTLogin extends UnlistedSpecialPage {
             )
             ? $_REQUEST[$parameterName]
             : null;
+    }
+
+    public function doesWrites() {
+        return true;
     }
 }
