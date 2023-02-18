@@ -31,7 +31,7 @@ class ProposedUser {
         $email = $jwtResponse->getEmailAddress();
         $realname = $jwtResponse->getFullName();
 
-        $proposedUser = User::newFromName($username);
+        $proposedUser = User::newFromName($username, 'usable');
 
         if ($proposedUser !== false && $proposedUser->getId() != 0) {
             $logger->debug("$username does exist with an ID " . $proposedUser->getId());
