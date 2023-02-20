@@ -13,6 +13,7 @@ class JWTResponse {
     private string $audience;
     private string $subject;
     private array $groups;
+    private array $groupsToRemove;
 
     private function __construct() {}
 
@@ -74,6 +75,10 @@ class JWTResponse {
         return $this->groups;
     }
 
+    public function getGroupsToRemove(): array {
+        return $this->groupsToRemove;
+    }
+
     public function setUsername(string $username): JWTResponse {
         $this->username = ucfirst($username);
         return $this;
@@ -123,6 +128,14 @@ class JWTResponse {
         }
 
         $groupMapping = $this->settings->getGroupMapping();
+	$groupTargets = array_values( $groupMapping );
+	$allGroups = [];
+	foreach( $groupTargets as $target ) {
+		if ( is_string( $target ) || is_array( $target ) ) {
+			$allGroups = array_merge( $allGroups, (array)$target );
+		}
+	}
+	$allGroups = array_unique( $allGroups );
 
         $groupsArray = explode(',', $commaSeparatedGroups);
         $this->groups = [];
@@ -145,6 +158,7 @@ class JWTResponse {
                 $this->groups = [...$this->groups, ...$possibleMapping];
             }
         }
+	$this->groupsToRemove = array_diff( $allGroups, $this->groups );
 
         return $this;
     }

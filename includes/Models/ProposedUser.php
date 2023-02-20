@@ -57,6 +57,10 @@ class ProposedUser {
         foreach ($groupsToBeAdded as $group) {
             $userGroupManager->addUserToGroup($proposedUser, $group);
         }
+        $groupsToBeRemoved = $jwtResponse->getGroupsToRemove();
+        foreach ($groupsToBeRemoved as $group) {
+            $userGroupManager->removeUserFromGroup( $proposedUser, $group );
+        }
 
         $logger->debug("Proposed user formed and ready: " . print_r($proposedUser, true));
 
