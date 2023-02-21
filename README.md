@@ -36,7 +36,7 @@ The following procedure must be followed to successfully authenticate a user int
 
 1. A JWT claim must be well formed and encoded into the JWT payload format using the key that has already been agreed upon.
 2. Find the path to your wiki's location of `Special:JWTLogin`. For instance, if your wiki is under `https://wiki.example.com` and `$wgArticlePath = "/wiki/$1";` then the location is `https://wiki.example.com/wiki/Special:JWTLogin`.
-3. The payload must be `POST`ed to this aforementioned URL. The URL should have a parameter called `Authorization` with the content `Bearer: JWTTOKENHERE`. For instance, `Bearer: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiSm9obiBEb2UiLCJpYXQiOjE1MTYyMzkwMjJ9.0sw4vF5BGhhnv2BMfrxQuNMgFU3mxZpVPsOfkvPWgjs`.
+3. The payload must be `POST`ed to this aforementioned URL. The URL should have a parameter called `Authorization` with the content `Bearer: JWTTOKENHERE`. For instance, `Bearer: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJuYSIsImF1ZCI6Im5hIiwiaXNzIjoibmEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJKb2huIERvZSIsImlhdCI6MTUxNjIzOTAyMiwibmJmIjoxNTE2MjM5MDIyLCJleHAiOjE3MTYyMzkwODJ9.gQbzrsJAVtEFjh-a4RwqZtSJ-IHxVvl2cj66Vkfljr`.
 4. The payload must conform to the claim names promulgated by IANA: https://www.iana.org/assignments/jwt/jwt.xhtml
 
 Below are the claims that are required by the JWTAuth extension. If any of these are missing, the authentication process will fail. If you are unsure of what these mean, or the allowed values for them, please visit https://jwt.io for more details.
@@ -49,7 +49,7 @@ Below are the claims that are required by the JWTAuth extension. If any of these
 - `aud`: Audience
 - `sub`: Subject
 
-You can put nonsense (but nonempty) values for `iss`, `aud`, and `sub`, as they are not checked by JWTAuth, but our JWT decoding library (Firebase JWT) may complain if they are not set.
+You can put nonsense (but nonempty) values for `iss`, `aud`, and `sub`, as they are not checked by JWTAuth, but our JWT decoding library (Firebase JWT) will cause the auth process to fail if they are not set.
 
 The following claims are optional, but are highly recommended because they will be added to users' profiles:
 
