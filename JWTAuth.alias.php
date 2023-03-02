@@ -8,5 +8,5 @@ $specialPageAliases = [];
 
 /** English (English) */
 $specialPageAliases['en'] = [
-	'jwtLogin' => [],
+	'JWTLogin' => [ 'JWTLogin' ],
 ];

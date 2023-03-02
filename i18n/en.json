@@ -1,3 +1,6 @@
 {
-    "jwtLogin": "JWTLogin"
+    "JWTLogin": "JWTLogin",
+    "jwt-ext-desc": "Allow logging in via JWT based SSO.",
+    "jwtauth-noparam": "This page is not meant to be viewed directly",
+    "jwtauth-invalid": "JWT parameter appears to be invalid"
 }

@@ -16,7 +16,8 @@ class JWTAuthSettings {
         string $algorithm,
         string $key,
         array $requiredClaims,
-        array $groupMapping
+        array $groupMapping,
+	string $claimName
     ): JWTAuthSettings {
         if (empty($algorithm) || empty($key)) {
             throw new InvalidArgumentException();
@@ -36,6 +37,7 @@ class JWTAuthSettings {
         $jwtAuthSettings->key = $key;
         $jwtAuthSettings->requiredClaims = $requiredClaims;
         $jwtAuthSettings->groupMapping = $groupMapping;
+        $jwtAuthSettings->groupsClaimName = $claimName;
 
         return $jwtAuthSettings;
     }
@@ -54,5 +56,9 @@ class JWTAuthSettings {
 
     public function getGroupMapping(): array {
         return $this->groupMapping;
+    }
+
+    public function getGroupsClaimName(): string {
+        return $this->groupsClaimName;
     }
 }

@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "JWTAuth",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": [
             "[https://github.com/mywikis MyWikis LLC]"
     ],
@@ -25,6 +25,15 @@
             "class": "MediaWiki\\Extension\\JWTAuth\\JWTLogin"
         }
     },
+    "Hooks": {
+        "TitleReadWhitelist": "readcheck"
+    },
+    "HookHandlers": {
+        "readcheck": {
+		"class": "MediaWiki\\Extension\\JWTAuth\\Hooks",
+		"services": [ "SpecialPageFactory" ]
+	}
+    },
     "ExtensionMessagesFiles": {
         "JWTAuthAlias": "JWTAuth.alias.php"
     },
@@ -33,7 +42,7 @@
     },
     "config": {
         "JWTAuthAlgorithm": {
-            "value": "Text"
+            "value": "HS256"
         },
         "JWTAuthKey": {
             "value": ""
@@ -46,6 +55,10 @@
         },
         "JWTAuthDebugMode": {
             "value": false
+        },
+        "JWTGroupsClaimName": {
+            "value": "groups"
         }
-    }
+    },
+    "load_composer_autoloader": true
 }
