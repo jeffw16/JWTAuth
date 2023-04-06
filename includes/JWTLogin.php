@@ -74,8 +74,8 @@ class JWTLogin extends UnlistedSpecialPage {
         // First, need to get the WebRequest from the WebContext
         $request = $this->getContext()->getRequest();
 
-        if ( !isset( $_POST[self::JWT_PARAMETER] ) ) {
-            $this->getOutput()->addWikiMsg( "jwtauth-noparam" );
+        if (!isset($_POST[self::JWT_PARAMETER])) {
+            $this->getOutput()->addWikiMsg('jwtauth-noparam');
             return;
         }
         // Get raw JWT data
@@ -86,7 +86,7 @@ class JWTLogin extends UnlistedSpecialPage {
 
         if (empty($cleanJWTData)) {
             // Invalid, no JWT
-            $this->getOutput()->addWikiMsg( "jwtauth-invalid" );
+            $this->getOutput()->addWikiMsg('jwtauth-invalid');
             return;
         }
 
