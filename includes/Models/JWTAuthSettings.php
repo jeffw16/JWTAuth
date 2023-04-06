@@ -59,6 +59,6 @@ class JWTAuthSettings {
     }
 
     public function getGroupsClaimName(): string {
-        return $this->groupsClaimName;
+        return $this->groupsClaimName ?? JWTAuth::CLAIM_NAMES['groups'];
     }
 }
