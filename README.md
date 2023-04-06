@@ -57,7 +57,7 @@ The following claims are optional, but are highly recommended because they will 
 - `family_name`
 - `given_name`
 
-These claim names cannot be changed to match the token generator's preferences because these claim names are standard conventions. The party generating the token is responsible for sending well-formed responses that conform to internet standards.
+As of 0.1.0, most of these claim names cannot be changed to match the token generator's preferences because these claim names are standard conventions. The party generating the token is responsible for sending well-formed responses that conform to internet standards. The group claims name can be changed to match your preferences by modifying `$wgJWTGroupClaimsName`.
 
 If you want to assign groups to a user, pass them in, separated by commas, by using the `groups` claim. For instance, `"groups": "customgroup1,customgroup2"`. Then, define the mapping in `$wgJWTGroupMapping` like it was done in the example config shown above.
 
@@ -71,3 +71,17 @@ If you want to try testing out JWTAuth using a simple form, put the following HT
   <input type="submit">
 </form>
 ```
+
+## Notes for developers
+Thank you for contributing to this extension!
+
+All code should follow standard coding conventions used across the industry.
+
+Please use 4 spaces in lieu of 1 tab character.
+
+This project does not follow the standard MediaWiki code style because:
+1. It makes use of arcane coding conventions not followed in other programming languages (or even other PHP projects, for that matter);
+2. It is difficult to enable lints that support arcane code styles on a wide variety of IDEs; and
+3. Developers who work on many codebases across different languages and companies/organizations don't need to (and don't want to) keep track of 3957302859673028503749382934 different coding styles.
+
+TL;DR: Please don't use the MediaWiki coding style. :)
