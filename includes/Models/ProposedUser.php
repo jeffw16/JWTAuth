@@ -31,7 +31,7 @@ class ProposedUser {
         $email = $jwtResponse->getEmailAddress();
         $realname = $jwtResponse->getFullName();
 
-        $proposedUser = User::newFromName($username);
+        $proposedUser = User::newFromName($username, 'usable');
 
         if ($proposedUser !== false && $proposedUser->getId() != 0) {
             $logger->debug("$username does exist with an ID " . $proposedUser->getId());
@@ -56,6 +56,10 @@ class ProposedUser {
         $logger->debug("Add groups: " . print_r($groupsToBeAdded, true));
         foreach ($groupsToBeAdded as $group) {
             $userGroupManager->addUserToGroup($proposedUser, $group);
+        }
+        $groupsToBeRemoved = $jwtResponse->getGroupsToRemove();
+        foreach ($groupsToBeRemoved as $group) {
+            $userGroupManager->removeUserFromGroup($proposedUser, $group);
         }
 
         $logger->debug("Proposed user formed and ready: " . print_r($proposedUser, true));

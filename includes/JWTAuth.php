@@ -20,6 +20,7 @@ class JWTAuth {
         'issuer' => 'iss',
         'audience' => 'aud',
         'subject' => 'sub',
+	// Overriden by $wgJWTGroupsClaimName
         'groups' => 'groups'
     ];
 

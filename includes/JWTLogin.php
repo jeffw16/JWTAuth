@@ -31,7 +31,6 @@ class JWTLogin extends UnlistedSpecialPage {
 
     const DEBUG_JWT_PARAMETER = 'debugJWT';
     const RETURN_TO_PAGE_PARAMETER = 'returnToPage';
-    const RETURN_TO_PAGE_DEFAULT_VALUE = 'Main_Page';
 
     private JWTHandler $jwtHandler;
     private $mwConfig;
@@ -57,7 +56,8 @@ class JWTLogin extends UnlistedSpecialPage {
             $this->mwConfig->get('JWTAuthAlgorithm'),
             $this->mwConfig->get('JWTAuthKey'),
             $this->mwConfig->get('JWTRequiredClaims'),
-            $this->mwConfig->get('JWTGroupMapping')
+            $this->mwConfig->get('JWTGroupMapping'),
+            $this->mwConfig->get('JWTGroupsClaimName')
         );
 
         $this->jwtHandler = new JWTHandler(
@@ -74,6 +74,10 @@ class JWTLogin extends UnlistedSpecialPage {
         // First, need to get the WebRequest from the WebContext
         $request = $this->getContext()->getRequest();
 
+        if (!isset($_POST[self::JWT_PARAMETER])) {
+            $this->getOutput()->addWikiMsg('jwtauth-noparam');
+            return;
+        }
         // Get raw JWT data
         $jwtDataRaw = $_POST[self::JWT_PARAMETER];
 
@@ -82,6 +86,7 @@ class JWTLogin extends UnlistedSpecialPage {
 
         if (empty($cleanJWTData)) {
             // Invalid, no JWT
+            $this->getOutput()->addWikiMsg('jwtauth-invalid');
             return;
         }
 
@@ -119,14 +124,15 @@ class JWTLogin extends UnlistedSpecialPage {
                 'label' => "Sorry, we couldn't log you in at this time. Please inform the site administrators of the following error: $error",
             ]));
         } else {
-            $requestedReturnToPage = $this->getRequestParameter(self::RETURN_TO_PAGE_PARAMETER);
 
+            $requestedReturnToPage = $this->getRequestParameter(self::RETURN_TO_PAGE_PARAMETER);
+            $returnToUrl = null;
             if ($requestedReturnToPage !== null) {
                 $this->logger->debug("Return to page: $requestedReturnToPage");
-                $returnToUrl = Title::newFromText($requestedReturnToPage)->getFullURL();
+                $returnToUrl = Title::newFromText($requestedReturnToPage)->getFullURLForRedirect();
             }
             if ($returnToUrl === null || strlen($returnToUrl) === 0) {
-                $returnToUrl = Title::newFromText(self::RETURN_TO_PAGE_DEFAULT_VALUE)->getFullURL();
+                $returnToUrl = Title::newMainPage()->getFullURLForRedirect();
             }
             $this->getOutput()->redirect($returnToUrl);
         }
@@ -141,5 +147,9 @@ class JWTLogin extends UnlistedSpecialPage {
             )
             ? $_REQUEST[$parameterName]
             : null;
+    }
+
+    public function doesWrites() {
+        return true;
     }
 }
