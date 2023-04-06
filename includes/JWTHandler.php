@@ -27,17 +27,20 @@ class JWTHandler {
     public function preprocessRawJWTData(
         string $rawJWTData
     ): string {
-        if (!str_starts_with($rawJWTData, 'Bearer:')) {
+        // Checks if the $rawJWTData string starts with the literal strings "Bearer:" or "Bearer ".
+        // If it doesn't start with either, it logs an error message and returns an empty string.
+        if (strpos($rawJWTData, 'Bearer:') !== 0 && strpos($rawJWTData, 'Bearer ') !== 0) {
             $this->logger->debug("Invalid JWT auth, doesn't start with Bearer");
             return '';
         }
-
-        $rawJWTData = substr($rawJWTData, strlen('Bearer:'));
+        // Extract the JWT substring after the first 7 characters, which removes the "Bearer:" or "Bearer " prefix.
+        // Remove any white space characters from the $rawJWTData string and output as $cleanJWTData.
+        $rawJWTData = str_replace(array('Bearer:', 'Bearer '), '', $rawJWTData);
         $cleanJWTData = preg_replace('/\s+/', '', $rawJWTData);
-
+    
         return $cleanJWTData;
     }
-
+    
     /**
      * @returns JWTResponse | string Error message
      */

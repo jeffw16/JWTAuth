@@ -75,14 +75,13 @@ class JWTLogin extends UnlistedSpecialPage {
         $request = $this->getContext()->getRequest();
     
         // Get JWT data from Authorization header or POST data
-        $jwtDataRaw = '';
-        if (isset($_SERVER['HTTP_AUTHORIZATION']) && strpos($_SERVER['HTTP_AUTHORIZATION'], 'Bearer ') === 0) {
-            // Authorization header is present and contains a JWT
-            $jwtDataRaw = substr($_SERVER['HTTP_AUTHORIZATION'], 7);
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $jwtDataRaw = $_SERVER['HTTP_AUTHORIZATION'];
+        } else if (isset($_POST[self::JWT_PARAMETER])) {
+            $jwtDataRaw = $_POST[self::JWT_PARAMETER];
         } else {
-            // Authorization header is not present, try to get JWT from POST data
-            $jwtDataRaw = isset($_POST[self::JWT_PARAMETER]) ? $_POST[self::JWT_PARAMETER] : '';
-        }
+            $jwtDataRaw = '';
+        }     
     
         // Clean data
         $cleanJWTData = $this->jwtHandler->preprocessRawJWTData($jwtDataRaw);
