@@ -1,11 +1,11 @@
 {
     "manifest_version": 2,
     "name": "JWTAuth",
-    "version": "0.0.2",
+    "version": "0.1.0",
     "author": [
             "[https://github.com/mywikis MyWikis LLC]"
     ],
-    "url": "https://github.com/mywikis/JWT",
+    "url": "https://github.com/jeffw16/JWT",
     "descriptionmsg": "jwt-ext-desc",
     "license-name": "MIT",
     "type": "other",
