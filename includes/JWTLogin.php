@@ -70,24 +70,31 @@ class JWTLogin extends UnlistedSpecialPage {
     public function execute($subpage) {
         // No errors yet
         $error = '';
-
+    
         // First, need to get the WebRequest from the WebContext
         $request = $this->getContext()->getRequest();
-
-        // Get raw JWT data
-        $jwtDataRaw = $_POST[self::JWT_PARAMETER];
-
+    
+        // Get JWT data from Authorization header or POST data
+        $jwtDataRaw = '';
+        if (isset($_SERVER['HTTP_AUTHORIZATION']) && strpos($_SERVER['HTTP_AUTHORIZATION'], 'Bearer ') === 0) {
+            // Authorization header is present and contains a JWT
+            $jwtDataRaw = substr($_SERVER['HTTP_AUTHORIZATION'], 7);
+        } else {
+            // Authorization header is not present, try to get JWT from POST data
+            $jwtDataRaw = isset($_POST[self::JWT_PARAMETER]) ? $_POST[self::JWT_PARAMETER] : '';
+        }
+    
         // Clean data
         $cleanJWTData = $this->jwtHandler->preprocessRawJWTData($jwtDataRaw);
-
+    
         if (empty($cleanJWTData)) {
             // Invalid, no JWT
             return;
         }
-
+    
         // Process JWT and get results back
         $jwtResults = $this->jwtHandler->processJWT($cleanJWTData);
-
+    
         if (is_string($jwtResults)) {
             // Invalid results
             $this->logger->debug("Unable to process JWT. The error message was: $jwtResults");
@@ -95,7 +102,7 @@ class JWTLogin extends UnlistedSpecialPage {
         } else {
             $jwtResponse = $jwtResults;
         }
-
+        
         if (empty($error)) {
             $proposedUser = ProposedUser::makeUserFromJWTResponse(
                 $jwtResponse,
