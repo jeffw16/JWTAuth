@@ -90,7 +90,7 @@ class JWTHandler {
                             ->setIssuer($stagingArea[JWTAuth::CLAIM_NAMES['issuer']])
                             ->setAudience($stagingArea[JWTAuth::CLAIM_NAMES['audience']])
                             ->setSubject($stagingArea[JWTAuth::CLAIM_NAMES['subject']])
-                            ->setGroups($stagingArea[JWTAuth::CLAIM_NAMES['groups']]);
+                            ->setGroups($stagingArea[$this->jwtSettings->getGroupsClaimName()]);
 
         return $jwtResponse;
     }
