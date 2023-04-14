@@ -17,6 +17,7 @@ Add the following to LocalSettings.php, being sure to fill in the proper values 
 wfLoadExtension( 'JWTAuth' );
 $wgJWTAuthAlgorithm = ''; // can be: HS256, RS256, EdDSA
 $wgJWTAuthKey = ''; // Depends on which algorithm you are using
+// For RS256 the key is the JWK in PEM format, extracted from the JWKS at https://yourdomain.com/auth/realms/servername/protocol/openid-connect/certs
 $wgJWTGroupMapping = [
   // one group can map to multiple MediaWiki groups...
   'customgroup1' => [
