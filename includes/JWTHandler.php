@@ -35,7 +35,7 @@ class JWTHandler {
         }
         // Extract the JWT substring after the first 7 characters, which removes the "Bearer:" or "Bearer " prefix.
         // Remove any white space characters from the $rawJWTData string and output as $cleanJWTData.
-        $rawJWTData = str_replace(array('Bearer:', 'Bearer '), '', $rawJWTData);
+        $rawJWTData = str_replace(['Bearer:', 'Bearer '], '', $rawJWTData);
         $cleanJWTData = preg_replace('/\s+/', '', $rawJWTData);
     
         return $cleanJWTData;
