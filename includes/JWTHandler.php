@@ -12,10 +12,22 @@ use Psr\Log\LoggerInterface;
 use Wikimedia\Assert\Assert;
 
 class JWTHandler {
-
+    /**
+     * @var JWTAuthSettings $jwtSettings The JWT settings object.
+     */
     private JWTAuthSettings $jwtSettings;
+
+    /**
+     * @var LoggerInterface $logger The logger object.
+     */
     private LoggerInterface $logger;
 
+    /**
+     * JWTHandler constructor.
+     *
+     * @param JWTAuthSettings $jwtSettings The JWT settings object.
+     * @param LoggerInterface $logger The logger object.
+     */
     public function __construct(
         JWTAuthSettings $jwtSettings,
         LoggerInterface $logger
@@ -24,6 +36,13 @@ class JWTHandler {
         $this->logger = $logger;
     }
 
+    /**
+     * Preprocesses the raw JWT data.
+     *
+     * @param string $rawJWTData The raw JWT data to be preprocessed.
+     *
+     * @return string Returns the preprocessed JWT data.
+     */
     public function preprocessRawJWTData(
         string $rawJWTData
     ): string {
@@ -42,7 +61,11 @@ class JWTHandler {
     }
     
     /**
-     * @returns JWTResponse | string Error message
+     * Processes the JWT token and returns a JWTResponse object or an error message.
+     *
+     * @param string $rawJWT The raw JWT token to be processed.
+     *
+     * @return JWTResponse|string Returns a JWTResponse object if the token is valid, or an error message if the token is invalid.
      */
     public function processJWT(
         string $rawJWT
@@ -95,6 +118,11 @@ class JWTHandler {
         return $jwtResponse;
     }
 
+    /**
+     * Gets the JWT key.
+     *
+     * @return Key Returns the JWT key.
+     */
     private function getJWTKey(): Key {
         $jwtAlgorithm = $this->jwtSettings->getAlgorithm();
         $jwtKey = $this->jwtSettings->getKey();
