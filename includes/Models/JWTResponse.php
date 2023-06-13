@@ -33,7 +33,7 @@ class JWTResponse {
             $emailAddressComponents = explode('@', $this->getEmailAddress());
             $candidateUsername = ucfirst($emailAddressComponents[0]);
         } else {
-            $candidateUsername = ucfirst($firstName) . $lastName;
+            $candidateUsername = ucfirst($this->getFirstName()) . $this->getLastName();
         }
 
         return $candidateUsername;

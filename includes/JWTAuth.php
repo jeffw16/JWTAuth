@@ -1,47 +1,138 @@
 <?php
 namespace MediaWiki\Extension\JWTAuth;
 
-class JWTAuth {
-    const JWT_AUTH_EXTENSION_NAME = 'JWTAuth';
+use Config;
+use MediaWiki\Extension\JWTAuth\Models\JWTAuthSettings;
+use MediaWiki\Extension\PluggableAuth\PluggableAuth;
+use MediaWiki\User\UserFactory;
+use MediaWiki\User\UserIdentity;
+use MediaWiki\User\UserRigorOptions;
+use Message;
 
-    const JWT_SUPPORTED_ALGORITHMS = [
-        'HS256',
-        'RS256',
-        'EdDSA'
-    ];
+class JWTAuth extends PluggableAuth {
+	const JWT_PARAMETER = 'Authorization';
 
-    // JWT claims: https://www.iana.org/assignments/jwt/jwt.xhtml
+	private Config $mainConfig;
+	private UserFactory $userFactory;
+	private JWTHandler $jwtHandler;
 
-    const CLAIM_NAMES = [
-        'username' => 'preferred_username',
-        'email' => 'email',
-        'firstName' => 'given_name',
-        'lastName' => 'family_name',
-        'issuer' => 'iss',
-        'audience' => 'aud',
-        'subject' => 'sub',
-	// Overriden by $wgJWTGroupsClaimName
-        'groups' => 'groups'
-    ];
+	/**
+	 * @param Config $mainConfig
+	 * @param UserFactory $userFactory
+	 */
+	public function __construct( Config $mainConfig, UserFactory $userFactory ) {
+		$this->mainConfig = $mainConfig;
+		$this->userFactory = $userFactory;
+	}
 
-    const LIBRARY_REQUIRED_CLAIMS = [
-        'exp',
-        'iat',
-        'nbf'
-    ];
+	/**
+	 * @param string $configId
+	 * @param array $config
+	 * @return void
+	 */
+	public function init( string $configId, array $config ): void {
+		parent::init( $configId, $config );
+		$jwtSettings = JWTAuthSettings::initialize(
+			$this->getConfigValue( 'AuthAlgorithm' ),
+			$this->getConfigValue( 'AuthKey' ),
+			$this->getConfigValue( 'RequiredClaims' ),
+			$this->getConfigValue( 'GroupMapping' ),
+			$this->getConfigValue( 'GroupsClaimName' )
+		);
+		$this->jwtHandler = new JWTHandler(
+			$jwtSettings,
+			$this->getLogger()
+		);
+	}
 
-    const EXTENSION_REQUIRED_CLAIMS = [
-        'preferred_username',
-        'iss',
-        'aud',
-        'sub'
-    ];
+	/**
+	 * @param string $name
+	 * @return mixed
+	 */
+	private function getConfigValue( string $name ) {
+		return $this->getData()->has( $name ) ? $this->getData()->get( $name ) :
+			$this->mainConfig->get( 'JWT' . $name );
+	}
 
-    const EXTENSION_OPTIONAL_CLAIMS = [
-        'email',
-        'ID',
-        'given_name',
-        'family_name',
-        'groups'
-    ];
+	/**
+	 * @param int|null &$id The user's user ID
+	 * @param string|null &$username The user's username
+	 * @param string|null &$realname The user's real name
+	 * @param string|null &$email The user's email address
+	 * @param string|null &$errorMessage Returns a descriptive message if there's an error
+	 * @return bool true if the user has been authenticated and false otherwise
+	 */
+	public function authenticate(
+		?int    &$id,
+		?string &$username,
+		?string &$realname,
+		?string &$email,
+		?string &$errorMessage
+	): bool {
+		// Get JWT data from Authorization header or POST data
+		if ( isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
+			$jwtDataRaw = $_SERVER['HTTP_AUTHORIZATION'];
+		} elseif ( isset( $_POST[self::JWT_PARAMETER] ) ) {
+			$jwtDataRaw = $_POST[self::JWT_PARAMETER];
+		} else {
+			$jwtDataRaw = '';
+		}
+
+		// Clean data
+		$cleanJWTData = $this->jwtHandler->preprocessRawJWTData( $jwtDataRaw );
+
+		if ( empty( $cleanJWTData ) ) {
+			// Invalid, no JWT
+			$errorMessage = new Message( 'jwtauth-invalid-jwt' );
+			$this->getLogger()->error( $errorMessage );
+			return false;
+		}
+
+		// Process JWT and get results back
+		$jwtResults = $this->jwtHandler->processJWT( $cleanJWTData );
+
+		if ( is_string( $jwtResults ) ) {
+			// Invalid results
+			$errorMessage = $jwtResults;
+			$this->getLogger()->error( "Unable to process JWT. The error message was: $jwtResults" );
+			return false;
+		}
+
+		$jwtResponse = $jwtResults;
+		$username = $jwtResponse->getUsername();
+		$realname = $jwtResponse->getFullName();
+		$email = $jwtResponse->getEmailAddress();
+
+		$proposedUser = $this->userFactory->newFromName( $username, UserRigorOptions::RIGOR_USABLE );
+		if ( $proposedUser === null ) {
+			$errorMessage = new Message( 'jwtauth-invalid-username' );
+			$this->getLogger()->error( 'Invalid username.' );
+			return false;
+		}
+
+		$id = $proposedUser->getId();
+		return true;
+	}
+
+	/**
+	 * @param UserIdentity &$user
+	 */
+	public function deauthenticate( UserIdentity &$user ): void {
+		// intentionally left blank
+	}
+
+	/**
+	 * @param UserIdentity $user
+	 * @return array
+	 */
+	public function getAttributes( UserIdentity $user ): array {
+		return [];
+	}
+
+	/**
+	 * @param int $id user id
+	 */
+	public function saveExtraAttributes( int $id ): void {
+		// intentionally left blank
+	}
 }

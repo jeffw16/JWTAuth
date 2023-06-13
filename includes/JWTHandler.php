@@ -1,18 +1,55 @@
 <?php
 namespace MediaWiki\Extension\JWTAuth;
 
+use DomainException;
 use Exception;
+use Firebase\JWT\BeforeValidException;
+use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
+use InvalidArgumentException;
 use MediaWiki\Extension\JWTAuth\Models\JWTAuthSettings;
 use MediaWiki\Extension\JWTAuth\Models\JWTResponse;
-use MediaWiki\Logger\LoggerFactory;
 use Psr\Log\LoggerInterface;
-use Wikimedia\Assert\Assert;
+use UnexpectedValueException;
 
 class JWTHandler {
-    /**
+	const JWT_SUPPORTED_ALGORITHMS = [
+		'HS256',
+		'RS256',
+		'EdDSA'
+	];
+
+	// JWT claims: https://www.iana.org/assignments/jwt/jwt.xhtml
+	const CLAIM_NAMES = [
+		'username' => 'preferred_username',
+		'email' => 'email',
+		'firstName' => 'given_name',
+		'lastName' => 'family_name',
+		'issuer' => 'iss',
+		'audience' => 'aud',
+		'subject' => 'sub',
+		// Overriden by $wgJWTGroupsClaimName
+		'groups' => 'groups'
+	];
+
+	const EXTENSION_REQUIRED_CLAIMS = [
+		'preferred_username',
+		'iss',
+		'aud',
+		'sub'
+	];
+
+	const EXTENSION_OPTIONAL_CLAIMS = [
+		'email',
+		'ID',
+		'given_name',
+		'family_name',
+		'groups'
+	];
+
+	/**
      * @var JWTAuthSettings $jwtSettings The JWT settings object.
      */
     private JWTAuthSettings $jwtSettings;
@@ -56,10 +93,10 @@ class JWTHandler {
         // Remove any white space characters from the $rawJWTData string and output as $cleanJWTData.
         $rawJWTData = str_replace(['Bearer:', 'Bearer '], '', $rawJWTData);
         $cleanJWTData = preg_replace('/\s+/', '', $rawJWTData);
-    
+
         return $cleanJWTData;
     }
-    
+
     /**
      * Processes the JWT token and returns a JWTResponse object or an error message.
      *
@@ -90,12 +127,12 @@ class JWTHandler {
 
         $stagingArea = [];
 
-        foreach (JWTAuth::EXTENSION_REQUIRED_CLAIMS as $claimName) {
+        foreach (self::EXTENSION_REQUIRED_CLAIMS as $claimName) {
             $stagingArea[$claimName] = $decodedJWT[$claimName];
             $this->logger->debug("Claim $claimName: " . $stagingArea[$claimName]);
         }
 
-        foreach (JWTAuth::EXTENSION_OPTIONAL_CLAIMS as $claimName) {
+        foreach (self::EXTENSION_OPTIONAL_CLAIMS as $claimName) {
             if (isset($decodedJWT[$claimName])) {
                 $stagingArea[$claimName] = $decodedJWT[$claimName];
             } else {
@@ -105,14 +142,14 @@ class JWTHandler {
         }
 
         $jwtResponse = JWTResponse::buildJWTResponse($this->jwtSettings)
-                            ->setUsername($stagingArea[JWTAuth::CLAIM_NAMES['username']])
-                            ->setEmailAddress($stagingArea[JWTAuth::CLAIM_NAMES['email']])
+                            ->setUsername($stagingArea[self::CLAIM_NAMES['username']])
+                            ->setEmailAddress($stagingArea[self::CLAIM_NAMES['email']])
                             ->setExternalUserID($stagingArea['ID'])
-                            ->setFirstName($stagingArea[JWTAuth::CLAIM_NAMES['firstName']])
-                            ->setLastName($stagingArea[JWTAuth::CLAIM_NAMES['lastName']])
-                            ->setIssuer($stagingArea[JWTAuth::CLAIM_NAMES['issuer']])
-                            ->setAudience($stagingArea[JWTAuth::CLAIM_NAMES['audience']])
-                            ->setSubject($stagingArea[JWTAuth::CLAIM_NAMES['subject']])
+                            ->setFirstName($stagingArea[self::CLAIM_NAMES['firstName']])
+                            ->setLastName($stagingArea[self::CLAIM_NAMES['lastName']])
+                            ->setIssuer($stagingArea[self::CLAIM_NAMES['issuer']])
+                            ->setAudience($stagingArea[self::CLAIM_NAMES['audience']])
+                            ->setSubject($stagingArea[self::CLAIM_NAMES['subject']])
                             ->setGroups($stagingArea[$this->jwtSettings->getGroupsClaimName()]);
 
         return $jwtResponse;
@@ -132,11 +169,11 @@ class JWTHandler {
                 $jwtKey,
                 $jwtAlgorithm
             );
-            return $key;
         } catch (Exception $ex) {
             $errorMessage = $ex->__toString();
             $this->logger->debug($errorMessage . PHP_EOL);
         }
+		return $key;
     }
 
     private function decodeJWT(
@@ -162,7 +199,7 @@ class JWTHandler {
             } else {
                 return $decodedJWTDict;
             }
-        } catch (\Firebase\JWT\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             // provided key/key-array is empty or malformed.
             $errorMessageToReturn = 'Error occurred while attempting to decode JWT. The JWT key was not valid.';
 
@@ -170,7 +207,7 @@ class JWTHandler {
                 'error' => true,
                 'errorMessage' => $errorMessageToReturn
             ];
-        } catch (\Firebase\JWT\DomainException $e) {
+        } catch (DomainException $e) {
             // provided algorithm is unsupported OR
             // provided key is invalid OR
             // unknown error thrown in openSSL or libsodium OR
@@ -181,7 +218,7 @@ class JWTHandler {
                 'error' => true,
                 'errorMessage' => $errorMessageToReturn
             ];
-        } catch (\Firebase\JWT\SignatureInvalidException $e) {
+        } catch (SignatureInvalidException $e) {
             // provided JWT signature verification failed.
             $errorMessageToReturn = 'Error occurred while attempting to decode JWT. The JWT signature was not valid.';
 
@@ -189,7 +226,7 @@ class JWTHandler {
                 'error' => true,
                 'errorMessage' => $errorMessageToReturn
             ];
-        } catch (\Firebase\JWT\BeforeValidException $e) {
+        } catch (BeforeValidException $e) {
             // provided JWT is trying to be used before "nbf" claim OR
             // provided JWT is trying to be used before "iat" claim.
             $errorMessageToReturn = 'Error occurred while attempting to decode JWT. This JWT is not yet valid.';
@@ -198,7 +235,7 @@ class JWTHandler {
                 'error' => true,
                 'errorMessage' => $errorMessageToReturn
             ];
-        } catch (\Firebase\JWT\ExpiredException $e) {
+        } catch (ExpiredException $e) {
             // provided JWT is trying to be used after "exp" claim.
             $errorMessageToReturn = 'Error occurred while attempting to decode JWT. This JWT is expired.';
 
@@ -206,7 +243,7 @@ class JWTHandler {
                 'error' => true,
                 'errorMessage' => $errorMessageToReturn
             ];
-        } catch (\Firebase\JWT\UnexpectedValueException $e) {
+        } catch (UnexpectedValueException $e) {
             // provided JWT is malformed OR
             // provided JWT is missing an algorithm / using an unsupported algorithm OR
             // provided JWT algorithm does not match provided key OR
@@ -237,7 +274,7 @@ class JWTHandler {
         if (!is_array($decodedJWT)) return false;
 
         // Check if all required claims are there
-        foreach (JWTAuth::EXTENSION_REQUIRED_CLAIMS as $claimName) {
+        foreach (self::EXTENSION_REQUIRED_CLAIMS as $claimName) {
             if (empty($decodedJWT[$claimName])) {
                 $this->logger->debug('JWT is missing always-required claim: ' . $claimName . PHP_EOL);
                 return false;

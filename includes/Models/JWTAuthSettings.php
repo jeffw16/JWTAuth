@@ -1,7 +1,8 @@
 <?php
 namespace MediaWiki\Extension\JWTAuth\Models;
 
-use MediaWiki\Extension\JWTAuth\JWTAuth;
+use InvalidArgumentException;
+use MediaWiki\Extension\JWTAuth\JWTHandler;
 use Wikimedia\Assert\Assert;
 
 class JWTAuthSettings {
@@ -9,6 +10,7 @@ class JWTAuthSettings {
     private string $key;
     private array $requiredClaims;
     private array $groupMapping;
+	private string $groupsClaimName;
 
     private function __construct() {}
 
@@ -17,14 +19,14 @@ class JWTAuthSettings {
         string $key,
         array $requiredClaims,
         array $groupMapping,
-	string $claimName
+		string $claimName
     ): JWTAuthSettings {
         if (empty($algorithm) || empty($key)) {
             throw new InvalidArgumentException();
         }
 
         Assert::precondition(
-            in_array($algorithm, JWTAuth::JWT_SUPPORTED_ALGORITHMS, true)
+            in_array($algorithm, JWTHandler::JWT_SUPPORTED_ALGORITHMS, true)
             , 'JWT algorithm must be one of the following: HS256, RS256, EdDSA, but was found to be "' . $algorithm . '".'
         );
 
@@ -59,6 +61,6 @@ class JWTAuthSettings {
     }
 
     public function getGroupsClaimName(): string {
-        return $this->groupsClaimName ?? JWTAuth::CLAIM_NAMES['groups'];
+        return $this->groupsClaimName ?? JWTHandler::CLAIM_NAMES['groups'];
     }
 }

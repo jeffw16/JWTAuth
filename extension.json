@@ -20,26 +20,6 @@
     "AutoloadNamespaces": {
         "MediaWiki\\Extension\\JWTAuth\\": "includes/"
     },
-    "SpecialPages": {
-        "JWTLogin": {
-            "class": "MediaWiki\\Extension\\JWTAuth\\JWTLogin"
-        }
-    },
-    "Hooks": {
-        "TitleReadWhitelist": "readcheck"
-    },
-    "HookHandlers": {
-        "readcheck": {
-		"class": "MediaWiki\\Extension\\JWTAuth\\Hooks",
-		"services": [ "SpecialPageFactory" ]
-	}
-    },
-    "ExtensionMessagesFiles": {
-        "JWTAuthAlias": "JWTAuth.alias.php"
-    },
-    "ConfigRegistry": {
-        "JWTAuth": "GlobalVarConfig::newInstance"
-    },
     "config": {
         "JWTAuthAlgorithm": {
             "value": "HS256"
@@ -53,12 +33,20 @@
         "JWTGroupMapping": {
             "value": []
         },
-        "JWTAuthDebugMode": {
-            "value": false
-        },
         "JWTGroupsClaimName": {
             "value": "groups"
         }
     },
+	"attributes": {
+		"PluggableAuth": {
+			"JWTAuth": {
+				"class": "MediaWiki\\Extension\\JWTAuth\\JWTAuth",
+				"services": [
+					"MainConfig",
+					"UserFactory"
+				]
+			}
+		}
+	},
     "load_composer_autoloader": true
 }
