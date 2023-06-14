@@ -30,8 +30,6 @@ class JWTHandler {
 		'issuer' => 'iss',
 		'audience' => 'aud',
 		'subject' => 'sub',
-		// Overriden by $wgJWTGroupsClaimName
-		'groups' => 'groups'
 	];
 
 	const EXTENSION_REQUIRED_CLAIMS = [
@@ -150,7 +148,7 @@ class JWTHandler {
                             ->setIssuer($stagingArea[self::CLAIM_NAMES['issuer']])
                             ->setAudience($stagingArea[self::CLAIM_NAMES['audience']])
                             ->setSubject($stagingArea[self::CLAIM_NAMES['subject']])
-                            ->setGroups($stagingArea[$this->jwtSettings->getGroupsClaimName()]);
+							->setAttributes($decodedJWT);
 
         return $jwtResponse;
     }

@@ -2,6 +2,7 @@
 namespace MediaWiki\Extension\JWTAuth;
 
 use Config;
+use MediaWiki\Auth\AuthManager;
 use MediaWiki\Extension\JWTAuth\Models\JWTAuthSettings;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
 use MediaWiki\User\UserFactory;
@@ -10,18 +11,22 @@ use MediaWiki\User\UserRigorOptions;
 use Message;
 
 class JWTAuth extends PluggableAuth {
-	const JWT_PARAMETER = 'Authorization';
+	const JWTAUTH_POST_PARAMETER = 'Authorization';
+	const JWTAUTH_ATTRIBUTES_SESSION_KEY = 'Attributes';
 
 	private Config $mainConfig;
+	private AuthManager $authManager;
 	private UserFactory $userFactory;
 	private JWTHandler $jwtHandler;
 
 	/**
 	 * @param Config $mainConfig
+	 * @param AuthManager $authManager
 	 * @param UserFactory $userFactory
 	 */
-	public function __construct( Config $mainConfig, UserFactory $userFactory ) {
+	public function __construct( Config $mainConfig, AuthManager $authManager, UserFactory $userFactory ) {
 		$this->mainConfig = $mainConfig;
+		$this->authManager = $authManager;
 		$this->userFactory = $userFactory;
 	}
 
@@ -72,8 +77,8 @@ class JWTAuth extends PluggableAuth {
 		// Get JWT data from Authorization header or POST data
 		if ( isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
 			$jwtDataRaw = $_SERVER['HTTP_AUTHORIZATION'];
-		} elseif ( isset( $_POST[self::JWT_PARAMETER] ) ) {
-			$jwtDataRaw = $_POST[self::JWT_PARAMETER];
+		} elseif ( isset( $_POST[self::JWTAUTH_POST_PARAMETER] ) ) {
+			$jwtDataRaw = $_POST[self::JWTAUTH_POST_PARAMETER];
 		} else {
 			$jwtDataRaw = '';
 		}
@@ -111,6 +116,9 @@ class JWTAuth extends PluggableAuth {
 		}
 
 		$id = $proposedUser->getId();
+
+		$this->setSessionSecret( self::JWTAUTH_ATTRIBUTES_SESSION_KEY, $jwtResponse->getAttributes() );
+
 		return true;
 	}
 
@@ -126,7 +134,7 @@ class JWTAuth extends PluggableAuth {
 	 * @return array
 	 */
 	public function getAttributes( UserIdentity $user ): array {
-		return [];
+		return $this->getSessionSecret( self::JWTAUTH_ATTRIBUTES_SESSION_KEY );
 	}
 
 	/**
@@ -134,5 +142,13 @@ class JWTAuth extends PluggableAuth {
 	 */
 	public function saveExtraAttributes( int $id ): void {
 		// intentionally left blank
+	}
+
+	private function setSessionSecret( $key, $value ) {
+		$this->authManager->getRequest()->getSession()->setSecret( $key, $value );
+	}
+
+	private function getSessionSecret( $key ) {
+		return $this->authManager->getRequest()->getSession()->getSecret( $key );
 	}
 }

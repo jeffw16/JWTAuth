@@ -43,6 +43,7 @@
 				"class": "MediaWiki\\Extension\\JWTAuth\\JWTAuth",
 				"services": [
 					"MainConfig",
+					"AuthManager",
 					"UserFactory"
 				]
 			}
