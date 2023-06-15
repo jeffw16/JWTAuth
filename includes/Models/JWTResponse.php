@@ -4,7 +4,6 @@ namespace MediaWiki\Extension\JWTAuth\Models;
 
 class JWTResponse {
     private string $externalUserID;
-    private string $username;
     private string $firstName;
     private string $lastName;
     private string $emailAddress;
@@ -16,29 +15,11 @@ class JWTResponse {
     private function __construct() {
     }
 
-    public static function buildJWTResponse( JWTAuthSettings $settings ): JWTResponse {
-        $jwtResponseObject = new JWTResponse();
-        $jwtResponseObject->settings = $settings;
-        return $jwtResponseObject;
+    public static function buildJWTResponse(): JWTResponse {
+        return new JWTResponse();
     }
 
-    public function getUsername(): string {
-        // TODO: Add more checks to ensure username fits with MediaWiki requirements
-        $username = $this->username;
-
-        if ( !empty( $username ) ) {
-            $candidateUsername = $username;
-        } elseif ( !empty( $this->getEmailAddress() ) ) {
-            $emailAddressComponents = explode( '@', $this->getEmailAddress() );
-            $candidateUsername = ucfirst( $emailAddressComponents[0] );
-        } else {
-            $candidateUsername = ucfirst( $this->getFirstName() ) . $this->getLastName();
-        }
-
-        return $candidateUsername;
-    }
-
-    public function getEmailAddress(): string {
+     public function getEmailAddress(): string {
         return $this->emailAddress ?? '';
     }
 
@@ -72,11 +53,6 @@ class JWTResponse {
 
     public function getAttributes(): array {
         return $this->attributes;
-    }
-
-    public function setUsername( string $username ): JWTResponse {
-        $this->username = ucfirst( $username );
-        return $this;
     }
 
     public function setFirstName( string $firstName ): JWTResponse {

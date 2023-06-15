@@ -139,8 +139,7 @@ class JWTHandler {
             $this->logger->debug("Claim $claimName: " . $stagingArea[$claimName]);
         }
 
-        $jwtResponse = JWTResponse::buildJWTResponse($this->jwtSettings)
-                            ->setUsername($stagingArea[self::CLAIM_NAMES['username']])
+        $jwtResponse = JWTResponse::buildJWTResponse()
                             ->setEmailAddress($stagingArea[self::CLAIM_NAMES['email']])
                             ->setExternalUserID($stagingArea['ID'])
                             ->setFirstName($stagingArea[self::CLAIM_NAMES['firstName']])

@@ -5,29 +5,43 @@ use Config;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Extension\JWTAuth\Models\JWTAuthSettings;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
-use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
-use MediaWiki\User\UserRigorOptions;
+use MediaWiki\User\UserIdentityLookup;
 use Message;
+use Title;
 
 class JWTAuth extends PluggableAuth {
 	const JWTAUTH_POST_PARAMETER = 'Authorization';
-	const JWTAUTH_ATTRIBUTES_SESSION_KEY = 'Attributes';
+	const JWTAUTH_SUBJECT_SESSION_KEY = 'JWTAuthSubject';
+	const JWTAUTH_ISSUER_SESSION_KEY = 'JWTAuthIssuer';
+	const JWTAUTH_ATTRIBUTES_SESSION_KEY = 'JWTAuthAttributes';
 
 	private Config $mainConfig;
 	private AuthManager $authManager;
-	private UserFactory $userFactory;
 	private JWTHandler $jwtHandler;
+	private UserIdentityLookup $userIdentityLookup;
+	private JWTAuthStore $jwtAuthStore;
+	private bool $migrateUsersByEmail;
+	private bool $migrateUsersByUserName;
+	private bool $useRealNameAsUserName;
+	private bool $useEmailNameAsUserName;
 
 	/**
 	 * @param Config $mainConfig
 	 * @param AuthManager $authManager
-	 * @param UserFactory $userFactory
+	 * @param UserIdentityLookup $userIdentityLookup
+	 * @param JWTAuthStore $jwtAuthStore
 	 */
-	public function __construct( Config $mainConfig, AuthManager $authManager, UserFactory $userFactory ) {
+	public function __construct(
+		Config             $mainConfig,
+		AuthManager        $authManager,
+		UserIdentityLookup $userIdentityLookup,
+		JWTAuthStore       $jwtAuthStore
+	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
-		$this->userFactory = $userFactory;
+		$this->userIdentityLookup = $userIdentityLookup;
+		$this->jwtAuthStore = $jwtAuthStore;
 	}
 
 	/**
@@ -37,12 +51,14 @@ class JWTAuth extends PluggableAuth {
 	 */
 	public function init( string $configId, array $config ): void {
 		parent::init( $configId, $config );
+		$this->migrateUsersByEmail = $this->getConfigValue( 'MigrateUsersByEmail' );
+		$this->migrateUsersByUserName = $this->getConfigValue( 'MigrateUsersByUserName' );
+		$this->useRealNameAsUserName = $this->getConfigValue( 'UseRealNameAsUserName' );
+		$this->useEmailNameAsUserName = $this->getConfigValue( 'UseEmailNameAsUserName' );
 		$jwtSettings = JWTAuthSettings::initialize(
-			$this->getConfigValue( 'AuthAlgorithm' ),
-			$this->getConfigValue( 'AuthKey' ),
-			$this->getConfigValue( 'RequiredClaims' ),
-			$this->getConfigValue( 'GroupMapping' ),
-			$this->getConfigValue( 'GroupsClaimName' )
+			$this->getConfigValue( 'Algorithm' ),
+			$this->getConfigValue( 'Key' ),
+			$this->getConfigValue( 'RequiredClaims' )
 		);
 		$this->jwtHandler = new JWTHandler(
 			$jwtSettings,
@@ -56,7 +72,7 @@ class JWTAuth extends PluggableAuth {
 	 */
 	private function getConfigValue( string $name ) {
 		return $this->getData()->has( $name ) ? $this->getData()->get( $name ) :
-			$this->mainConfig->get( 'JWT' . $name );
+			$this->mainConfig->get( 'JWTAuth_' . $name );
 	}
 
 	/**
@@ -104,20 +120,61 @@ class JWTAuth extends PluggableAuth {
 		}
 
 		$jwtResponse = $jwtResults;
-		$username = $jwtResponse->getUsername();
 		$realname = $jwtResponse->getFullName();
 		$email = $jwtResponse->getEmailAddress();
 
-		$proposedUser = $this->userFactory->newFromName( $username, UserRigorOptions::RIGOR_USABLE );
-		if ( $proposedUser === null ) {
-			$errorMessage = new Message( 'jwtauth-invalid-username' );
-			$this->getLogger()->error( 'Invalid username.' );
-			return false;
+		$subject = $jwtResponse->getSubject();
+		$this->authManager->setAuthenticationSessionData( self::JWTAUTH_SUBJECT_SESSION_KEY, $subject );
+
+		$issuer = $jwtResponse->getIssuer();
+		$this->authManager->setAuthenticationSessionData( self::JWTAUTH_ISSUER_SESSION_KEY, $issuer );
+
+		$attributes = $jwtResponse->getAttributes();
+		$this->authManager->getRequest()->getSession()->setSecret( self::JWTAUTH_ATTRIBUTES_SESSION_KEY, $attributes );
+
+		$this->getLogger()->debug(
+			'Real name: ' . $realname .
+			', Email: ' . $email .
+			', Subject: ' . $subject .
+			', Issuer: ' . $issuer
+		);
+
+		list( $id, $username ) = $this->jwtAuthStore->findUser( $subject, $issuer );
+		if ( $id !== null ) {
+			$this->getLogger()->debug( 'Found user with matching subject and issuer.' . PHP_EOL );
+			return true;
 		}
 
-		$id = $proposedUser->getId();
+		$this->getLogger()->debug( 'No user found with matching subject and issuer.' . PHP_EOL );
 
-		$this->setSessionSecret( self::JWTAUTH_ATTRIBUTES_SESSION_KEY, $jwtResponse->getAttributes() );
+		if ( $this->migrateUsersByEmail && ( $email ?? '' ) !== '' ) {
+			$this->getLogger()->debug( 'Checking for email migration.' . PHP_EOL );
+			list( $id, $username ) = $this->getMigratedIdByEmail( $email );
+			if ( $id !== null ) {
+				$this->saveExtraAttributes( $id );
+				$this->getLogger()->debug( 'Migrated user ' . $username . ' by email: ' . $email . '.' . PHP_EOL );
+				return true;
+			}
+		}
+
+		$preferred_username = $this->getPreferredUsername( $attributes, $realname, $email );
+		$this->getLogger()->debug( 'Preferred username: ' . $preferred_username . PHP_EOL );
+
+		if ( $this->migrateUsersByUserName ) {
+			$this->getLogger()->debug( 'Checking for username migration.' . PHP_EOL );
+			$id = $this->getMigratedIdByUserName( $preferred_username );
+			if ( $id !== null ) {
+				$this->saveExtraAttributes( $id );
+				$this->getLogger()->debug( 'Migrated user by username: ' . $preferred_username . '.' .
+					PHP_EOL );
+				$username = $preferred_username;
+				return true;
+			}
+		}
+
+		$username = $this->getAvailableUsername( $preferred_username );
+
+		$this->getLogger()->debug( 'Available username: ' . $username . PHP_EOL );
 
 		return true;
 	}
@@ -134,21 +191,81 @@ class JWTAuth extends PluggableAuth {
 	 * @return array
 	 */
 	public function getAttributes( UserIdentity $user ): array {
-		return $this->getSessionSecret( self::JWTAUTH_ATTRIBUTES_SESSION_KEY );
+		return $this->authManager->getRequest()->getSession()->getSecret( self::JWTAUTH_ATTRIBUTES_SESSION_KEY );
 	}
 
 	/**
 	 * @param int $id user id
 	 */
 	public function saveExtraAttributes( int $id ): void {
-		// intentionally left blank
+		$subject = $this->authManager->getAuthenticationSessionData( self::JWTAUTH_SUBJECT_SESSION_KEY );
+		$issuer = $this->authManager->getAuthenticationSessionData( self::JWTAUTH_ISSUER_SESSION_KEY );
+		$this->jwtAuthStore->saveExtraAttributes( $id, $subject, $issuer );
 	}
 
-	private function setSessionSecret( $key, $value ) {
-		$this->authManager->getRequest()->getSession()->setSecret( $key, $value );
+	private function getPreferredUsername( array $attributes, ?string $realname, ?string $email ): ?string {
+		$preferred_username = '';
+		$attributeName = 'preferred_username';
+		if ( $this->getData()->has( 'preferred_username' ) ) {
+			$attributeName = $this->getData()->get( 'preferred_username' );
+			$this->getLogger()->debug( 'Using ' . $attributeName . ' attribute for preferred username.' . PHP_EOL );
+		}
+		if ( isset( $attributes[$attributeName] ) ) {
+			$preferred_username = $attributes[$attributeName];
+		}
+
+		if ( strlen( $preferred_username ) > 0 ) {
+			// do nothing
+		} elseif ( $this->useRealNameAsUserName && ( $realname ?? '' ) !== '' ) {
+			$preferred_username = $realname;
+		} elseif ( $this->useEmailNameAsUserName && ( $email ?? '' ) !== '' ) {
+			$pos = strpos( $email, '@' );
+			if ( $pos !== false && $pos > 0 ) {
+				$preferred_username = substr( $email, 0, $pos );
+			} else {
+				$preferred_username = $email;
+			}
+		} else {
+			return null;
+		}
+		$nt = Title::makeTitleSafe( NS_USER, $preferred_username );
+		if ( $nt === null ) {
+			return null;
+		}
+		return $nt->getText();
 	}
 
-	private function getSessionSecret( $key ) {
-		return $this->authManager->getRequest()->getSession()->getSecret( $key );
+	private function getMigratedIdByUserName( string $username ): ?string {
+		$nt = Title::makeTitleSafe( NS_USER, $username );
+		if ( $nt === null ) {
+			$this->getLogger()->debug( 'Invalid preferred username for migration: ' . $username . '.' . PHP_EOL );
+			return null;
+		}
+		$username = $nt->getText();
+		return $this->jwtAuthStore->getMigratedIdByUserName( $username );
+	}
+
+	private function getMigratedIdByEmail( string $email ): array {
+		$this->getLogger()->debug( 'Matching user to email ' . $email . '.' . PHP_EOL );
+		return $this->jwtAuthStore->getMigratedIdByEmail( $email );
+	}
+
+	private function getAvailableUsername( ?string $preferred_username ): string {
+		if ( $preferred_username === null ) {
+			$preferred_username = 'User';
+		}
+
+		$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username );
+		if ( !$userIdentity || !$userIdentity->isRegistered() ) {
+			return $preferred_username;
+		}
+
+		$count = 1;
+		$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username . $count );
+		while ( $userIdentity && $userIdentity->isRegistered() ) {
+			$count++;
+			$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username . $count );
+		}
+		return $preferred_username . $count;
 	}
 }
