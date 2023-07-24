@@ -1,0 +1,5 @@
+{
+    "jwt-ext-desc": "{{desc|name=JWTAuth|url=https://www.mediawiki.org/wiki/Extension:JWTAuth}}",
+    "jwtauth-invalid-jwt": "error message",
+	"jwtauth-invalid-username": "error message"
+}

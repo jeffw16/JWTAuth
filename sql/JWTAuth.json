@@ -1,0 +1,53 @@
+[
+	{
+		"name": "jwtauth",
+		"columns": [
+			{
+				"name": "jwtauth_user",
+				"comment": "User ID",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": true
+				}
+			},
+			{
+				"name": "jwtauth_subject",
+				"comment": "JWT subject",
+				"type": "blob",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			},
+			{
+				"name": "jwtauth_issuer",
+				"comment": "JWT issuer",
+				"type": "blob",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			}
+		],
+		"indexes": [
+			{
+				"name": "jwtauth_subject",
+				"columns": [
+					"jwtauth_subject",
+					"jwtauth_issuer"
+				],
+				"options": {
+					"lengths": [
+						50,
+						50
+					]
+				},
+				"unique": false
+			}
+		],
+		"pk": [
+			"jwtauth_user"
+		]
+	}
+]
